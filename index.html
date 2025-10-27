@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Alpine.js -->
+  <script src="https://unpkg.com/alpinejs" defer></script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center h-screen p-6">
+
+  <!-- Основний контейнер -->
+  <div 
+    x-data="chatApp()" 
+    :class="accessToken ? 'bg-white p-6 rounded shadow-md w-[1000px]' : 'bg-white p-6 rounded shadow-md w-[400px]'"
+    class="transition-all duration-300"
+  >
+
+    <!-- 🔹 ФОРМА ЛОГІНУ -->
+    <template x-if="!accessToken">
+      <div class="max-w-md mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Вхід у систему</h2>
+
+        <input x-model="username" placeholder="Ім’я користувача"
+               class="border p-2 w-full mb-2 rounded" />
+
+        <input x-model="password" type="password" placeholder="Пароль"
+               class="border p-2 w-full mb-2 rounded" />
+
+        <button 
+          @click="login()" 
+          class="bg-blue-500 hover:bg-blue-600 transition text-white p-2 w-full rounded"
+        >
+          Увійти
+        </button>
+
+        <p x-text="error" class="text-red-500 mt-3"></p>
+
+        <p class="text-sm text-gray-500 mt-3">
+          Порада: не зберігайте паролі в коді. Вводьте пароль під час тесту.
+        </p>
+      </div>
+    </template>
+
+    <!-- 🔹 ПАНЕЛЬ ПІСЛЯ АВТОРИЗАЦІЇ -->
+    <template x-if="accessToken">
+      <div class="space-y-4">
+        <h1 class="text-2xl font-bold">✅ Ви успішно авторизувались. Ваша панель керування</h1>
+
+        <!-- Відображення Matrix ID -->
+        <div class="mb-2 p-3 bg-gray-100 rounded text-sm break-words">
+          <span class="font-semibold">Ваш Matrix ID: </span>
+          <span x-text="userId ? userId : 'Завантаження...'"></span>
+        </div>
+
+        <!-- 🔹 БЛОК РЕЗЮМЕ -->
+        <div class="p-4 bg-white border rounded shadow-sm">
+          <h2 class="text-xl font-semibold mb-2">Моє резюме</h2>
+          <p>Привіт! Мене звати <strong>Анастасія Балко</strong>. Я студентка, яка навчається розробці вебзастосунків і створюю свої перші практичні проєкти.</p>
+
+          <h3 class="mt-4 font-semibold">Мої навички</h3>
+          <ul class="list-disc list-inside mt-2 text-gray-700">
+            <li>HTML5 — верстка сторінок</li>
+            <li>CSS (Tailwind) — адаптивний дизайн</li>
+            <li>JavaScript — логіка користувацького інтерфейсу</li>
+            <li>Alpine.js — реактивні компоненти</li>
+            <li>Electron — створення десктопних додатків</li>
+          </ul>
+
+          <h3 class="mt-4 font-semibold">Мої проєкти</h3>
+          <table class="w-full mt-2 border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="border px-3 py-2 text-left">Назва</th>
+                <th class="border px-3 py-2 text-left">Технологія</th>
+                <th class="border px-3 py-2 text-left">Статус</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="odd:bg-white even:bg-gray-50">
+                <td class="border px-3 py-2">Перший додаток</td>
+                <td class="border px-3 py-2">Electron.js</td>
+                <td class="border px-3 py-2">В процесі</td>
+              </tr>
+              <tr class="odd:bg-white even:bg-gray-50">
+                <td class="border px-3 py-2">Портфоліо</td>
+                <td class="border px-3 py-2">HTML / CSS</td>
+                <td class="border px-3 py-2">Завершено</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="mt-4 font-semibold">Контакти</h3>
+          <ul class="list-disc list-inside mt-2 text-gray-700">
+            <li>Email: nastiabalko@example.com</li>
+            <li>Matrix ID: <span x-text="userId"></span></li>
+          </ul>
+        </div>
+
+        <!-- Кнопка виходу -->
+        <div>
+          <button @click="logout()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">
+            Вийти
+          </button>
+        </div>
+      </div>
+    </template>
+
+  </div>
+
+  <!-- 🔹 СКРИПТ (ЛОГІКА АВТОРИЗАЦІЇ) -->
+  <script>
+    function chatApp() {
+      return {
+        username: '',
+        password: '',
+        accessToken: '',
+        userId: '',
+        error: '',
+
+        // Авторизація через Matrix API
+        async login() {
+          this.error = '';
+
+          if (!this.username || !this.password) {
+            this.error = 'Будь ласка, введіть логін і пароль';
+            return;
+          }
+
+          try {
+            const res = await fetch('https://matrix.org/_matrix/client/r0/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'm.login.password',
+                user: this.username,
+                password: this.password
+              })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.access_token) {
+              this.accessToken = data.access_token;
+              this.userId = data.user_id || `@${this.username}:matrix.org`;
+              this.password = '';
+              this.error = '';
+            } else {
+              if (data && data.errcode === 'M_FORBIDDEN') {
+                this.error = 'Невірний логін або пароль';
+              } else if (data && data.error) {
+                this.error = `Помилка: ${data.error}`;
+              } else {
+                this.error = 'Не вдалося виконати вхід — спробуйте пізніше';
+              }
+            }
+          } catch (e) {
+            console.error(e);
+            this.error = 'Помилка під час з’єднання з сервером';
+          }
+        },
+
+        // Вихід з профілю
+        logout() {
+          this.accessToken = '';
+          this.userId = '';
+          this.username = '';
+          this.password = '';
+          this.error = '';
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
