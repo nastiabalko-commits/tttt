@@ -1,0 +1,13 @@
+.sidebar .active {
+  background-color: #bfdbfe;
+  font-weight: 500;
+}
+
+.sidebar li:hover {
+  background-color: #e0e7ff;
+}
+ .sidebar {
+  min-width: 250px;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+}
